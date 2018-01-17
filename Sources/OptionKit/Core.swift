@@ -178,13 +178,18 @@ public struct OptionParser {
     ///
     /// - parameter definitions: the option definitions to parse for.
     /// - returns: a parser
-    public init(definitions defs:[Option] = []) {
+    public init<S : Sequence>(definitions defs:S) where S.Element == Option {
         let helpOption = Option(trigger:.mixed("h", "help"), helpDescription: "Display command help.")
-        if defs.contains(helpOption) {
-            self.definitions = defs
+        if defs.contains(where: { $0 == helpOption }) {
+            self.definitions = Array(defs)
         } else {
-            self.definitions = defs + [helpOption]
+            self.definitions = Array(defs) + [helpOption]
         }
+    }
+    
+    public init() {
+        let helpOption = Option(trigger:.mixed("h", "help"), helpDescription: "Display command help.")
+        self.definitions = [helpOption]
     }
     
     /// Returns a default help string based on the passed command name and the existing options.
@@ -227,7 +232,8 @@ public struct OptionParser {
     ///
     /// - returns: A ParseData tuple
     /// - throws: OptionKitError
-    @discardableResult public func parse(_ parameters:[String]) throws -> ParseData {
+    @discardableResult
+    public func parse<S : Sequence>(_ parameters:S) throws -> ParseData where S.Element == String {
         let normalizedParams = OptionParser.normalizeParameters(parameters)
         let firstCall = ([OptionData](), [String]())
 
@@ -289,7 +295,7 @@ public struct OptionParser {
         return (current.0, current.1 + [flagCandidate])
     }
     
-    static func normalizeParameters(_ parameters:[String]) -> [String] {
+    static func normalizeParameters<S : Sequence>(_ parameters:S) -> [String] where S.Element == String {
         return parameters.reduce([String]()) { memo, next in
             let index = next.startIndex
             if next[index] != "-" {
